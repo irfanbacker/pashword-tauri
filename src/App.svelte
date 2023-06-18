@@ -1,45 +1,72 @@
 <script lang="ts">
   import svelteLogo from "./assets/svelte.svg";
   import Counter from "./lib/Counter.svelte";
+  import { invoke } from "@tauri-apps/api";
+
+  let allowedLengths = [
+    {value: 11, text: "Small - 11"},
+    {value: 15, text: "Medium - 15"},
+    {value: 20, text: "Large (Recommended) - 20"}
+  ];
+
+  let pashwordPromise;
+  let website;
+  let username;
+  let key;
+  let length=20;
+
+  function generate() {
+    setTimeout(() => {
+      pashwordPromise = invoke("generate_pashword", {
+      toHash:
+        '{"website":"'+website+'","username":"'+username+'","password":"'+key+'"}',
+      pashwordLength: length,
+      website: website,
+      username: username,
+    });
+    }, 0)
+  }
 </script>
 
 <main>
   <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank">
-      <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-    </a>
+    <h2 style="color: crimson;">Pashword-tauri</h2>
   </div>
-  <h1>Vite + Svelte</h1>
+  <div>
+    <form on:submit|preventDefault={generate}>
+      Website:
+      <input bind:value={website} placeholder="eg: reddit.com"><br><br>
+      Username:
+      <input bind:value={username} placeholder="eg: random_user1"><br><br>
+      Key:
+      <input bind:value={key} placeholder="eg: secret_key1!" type="password"><br><br>
 
-  <div class="card">
-    <Counter />
+      Pashword length:
+      <select bind:value={length} title="Pashword length">
+        {#each allowedLengths as currLength}
+          <option value={currLength.value}>{currLength.text}</option>
+        {/each}
+      </select>
+      <br><br>
+      <button disabled={!website||!username||!key||!length} type=submit>
+        Generate Pashword
+      </button>
+    </form>
   </div>
 
-  <p>
-    Check out <a href="https://github.com/sveltejs/kit#readme" target="_blank"
-      >SvelteKit</a
-    >, the official Svelte app framework powered by Vite!
-  </p>
-
-  <p class="read-the-docs">Click on the Vite and Svelte logos to learn more</p>
+  <div>
+    <br><br>
+    {#if pashwordPromise}
+    {#await pashwordPromise}
+      <br><br>
+      <p style="color: yellow;">Generating pashword...</p>
+    {:then pashword}
+      <p>The pashword is</p> <p style="color: greenyellow;">{pashword}</p>
+    {:catch error}
+      <p style="color: red">{error.message}</p>
+    {/await}
+    {:else}
+      <br><br><br><br>
+    {/if}
+  </div>
 </main>
-
-<style>
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-  }
-  .logo:hover {
-    filter: drop-shadow(0 0 2em #646cffaa);
-  }
-  .logo.svelte:hover {
-    filter: drop-shadow(0 0 2em #ff3e00aa);
-  }
-  .read-the-docs {
-    color: #888;
-  }
-</style>
